@@ -6,7 +6,6 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(tidyverse)
   library(scales)
-  library(grid)
 })
 
 BG     <- "#13131F"
@@ -27,59 +26,18 @@ draw_rect <- function(img, x1, y1, x2, y2, color) {
 
 # ── Data ────────────────────────────────────────────────────────────────────
 df <- tribble(
-  ~country,   ~gdp_per_capita, ~emp_rate, ~population_m, ~code,
-  "USA",      71200,           73.7,      335,           "us",
-  "Germany",  61200,           77.2,       84,           "de",
-  "Japan",    49200,           75.8,      123,           "jp",
-  "Brazil",   11700,           66.5,      215,           "br",
-  "Nigeria",  3550,            60.4,      230,           "ng"
+  ~country,   ~gdp_per_capita, ~emp_rate, ~population_m, ~flag,
+  "USA",      71200,           73.7,      335,           "\U0001F1FA\U0001F1F8",
+  "Germany",  61200,           77.2,       84,           "\U0001F1E9\U0001F1EA",
+  "Japan",    49200,           75.8,      123,           "\U0001F1EF\U0001F1F5",
+  "Brazil",   11700,           66.5,      215,           "\U0001F1E7\U0001F1F7",
+  "Nigeria",  3550,            60.4,      230,           "\U0001F1F3\U0001F1EC"
 )
 
 world_avg_emp <- 68
 world_avg_gdp <- 13500
 
 pal <- c(USA="#C9B1FF", Germany="#A08ECC", Japan="#8877B3", Brazil="#6B5F9E", Nigeria="#5A508A")
-
-# ── Download flags (cached to /tmp) ─────────────────────────────────────────
-flag_dir <- "/tmp/flags"
-dir.create(flag_dir, showWarnings = FALSE)
-
-download_flag <- function(code) {
-  dest <- file.path(flag_dir, paste0(code, ".png"))
-  if (!file.exists(dest)) {
-    url <- paste0("https://flagcdn.com/w80/", code, ".png")
-    tryCatch(download.file(url, dest, quiet = TRUE, mode = "wb"),
-             error = function(e) message("Flag download failed for: ", code))
-  }
-  dest
-}
-
-flag_grob <- function(code, size = 80) {
-  path <- download_flag(code)
-  if (!file.exists(path)) return(NULL)
-  img  <- image_read(path) |> image_scale(paste0(size, "x"))
-  rasterGrob(as.raster(img), interpolate = TRUE)
-}
-
-# Pre-load all flags
-flags <- setNames(
-  lapply(df$code, flag_grob),
-  df$country
-)
-
-# ── Flag placement helpers (in data coordinates) ─────────────────────────────
-# x-axis spans ~0–75000, y-axis spans 50–82
-# Flags sized to ~4500 wide × 1.7 tall (≈3:2 aspect ratio in plot space)
-fdx <- 4500
-fdy <- 1.7
-
-flag_annotations <- mapply(function(country, x, y) {
-  g <- flags[[country]]
-  if (is.null(g)) return(NULL)
-  annotation_custom(g,
-    xmin = x - fdx, xmax = x + fdx,
-    ymin = y - fdy, ymax = y + fdy)
-}, df$country, df$gdp_per_capita, df$emp_rate, SIMPLIFY = FALSE)
 
 # ── Chart ────────────────────────────────────────────────────────────────────
 p <- ggplot(df, aes(gdp_per_capita, emp_rate)) +
@@ -91,9 +49,9 @@ p <- ggplot(df, aes(gdp_per_capita, emp_rate)) +
   geom_vline(xintercept = world_avg_gdp, linetype = "dashed", color = MUTED, linewidth = 0.5) +
   geom_hline(yintercept = world_avg_emp,  linetype = "dashed", color = MUTED, linewidth = 0.5) +
   geom_point(aes(size = population_m, color = country), alpha = 0.35) +
-  flag_annotations +
+  geom_text(aes(label = flag), size = 9, vjust = 0.5) +
   geom_text(aes(label = paste0(country, "\n", round(population_m), "M"), color = country),
-            size = 3.5, fontface = "bold", vjust = -2.6, lineheight = 0.85) +
+            size = 3.5, fontface = "bold", vjust = -2.8, lineheight = 0.85) +
   scale_color_manual(values = pal) +
   scale_size_continuous(range = c(8, 38)) +
   scale_x_continuous(labels = label_dollar(scale = 1e-3, suffix = "k"),
