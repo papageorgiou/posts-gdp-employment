@@ -6,6 +6,12 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(tidyverse)
   library(scales)
+  if (!requireNamespace("ggflags", quietly = TRUE)) {
+    install.packages("ggflags", repos = c(
+      "https://jimjam-slam.r-universe.dev", "https://cloud.r-project.org"
+    ))
+  }
+  library(ggflags)
 })
 
 BG     <- "#13131F"
@@ -26,12 +32,12 @@ draw_rect <- function(img, x1, y1, x2, y2, color) {
 
 # ── Data ────────────────────────────────────────────────────────────────────
 df <- tribble(
-  ~country,   ~gdp_per_capita, ~emp_rate, ~population_m,
-  "USA",      71200,           73.7,      335,
-  "Germany",  61200,           77.2,       84,
-  "Japan",    49200,           75.8,      123,
-  "Brazil",   11700,           66.5,      215,
-  "Nigeria",  3550,            60.4,      230
+  ~country,   ~gdp_per_capita, ~emp_rate, ~population_m, ~code,
+  "USA",      71200,           73.7,      335,           "us",
+  "Germany",  61200,           77.2,       84,           "de",
+  "Japan",    49200,           75.8,      123,           "jp",
+  "Brazil",   11700,           66.5,      215,           "br",
+  "Nigeria",  3550,            60.4,      230,           "ng"
 )
 
 world_avg_emp <- 68
@@ -40,7 +46,7 @@ world_avg_gdp <- 13500
 pal <- c(USA="#C9B1FF",Germany="#A08ECC",Japan="#8877B3",Brazil="#6B5F9E",Nigeria="#5A508A")
 
 # ── Chart ────────────────────────────────────────────────────────────────────
-p <- ggplot(df, aes(gdp_per_capita, emp_rate, size=population_m, color=country)) +
+p <- ggplot(df, aes(gdp_per_capita, emp_rate)) +
   annotate("rect", xmin=0, xmax=world_avg_gdp, ymin=50, ymax=world_avg_emp,
            fill="#1E1E35", alpha=0.8) +
   annotate("text", x=1200, y=51.5, hjust=0,
@@ -48,9 +54,10 @@ p <- ggplot(df, aes(gdp_per_capita, emp_rate, size=population_m, color=country))
            size=3.2, color=SEC, fontface="italic") +
   geom_vline(xintercept=world_avg_gdp, linetype="dashed", color=MUTED, linewidth=0.5) +
   geom_hline(yintercept=world_avg_emp, linetype="dashed", color=MUTED, linewidth=0.5) +
-  geom_point(alpha=0.80) +
-  geom_text(aes(label=paste0(country,"\n",round(population_m),"M")),
-            size=3.5, fontface="bold", vjust=-1.15, lineheight=0.85, color=WHITE) +
+  geom_point(aes(size=population_m, color=country), alpha=0.40) +
+  geom_flag(aes(country=code), size=11) +
+  geom_text(aes(label=paste0(country,"\n",round(population_m),"M"), color=country),
+            size=3.5, fontface="bold", vjust=-2.4, lineheight=0.85) +
   scale_color_manual(values=pal) +
   scale_size_continuous(range=c(8,38)) +
   scale_x_continuous(labels=label_dollar(scale=1e-3,suffix="k"),
